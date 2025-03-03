@@ -1,0 +1,2 @@
+# twitchlive-discord-notifier
+Twitchの配信開始通知をDiscordに送るためのBot
