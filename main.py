@@ -7,10 +7,17 @@ from flask import Response
 discord_token = str(os.environ.get("DISCORD_TOKEN"))
 discord_channel = int(os.environ.get("DISCORD_CHANNEL_ID"))
 
+twitch_token = str(os.environ.get("TWITCH_TOKEN"))
+twitch_client_id = str(os.environ.get("TWITCH_CLIENT_ID"))
+
 @functions_framework.http
 def main(request):
-    if request.method == "POST":
-        send(request)
+    if request.method != "POST":
+        return "無効です"
+
+    # ここにシグネチャの確認をするかもしれない
+
+    send(request)
     
 def send(request):
     try:
