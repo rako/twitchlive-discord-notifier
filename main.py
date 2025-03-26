@@ -1,4 +1,8 @@
 import requests
+import os
+import functions_framework
+from flask import Response
+
 
 discord_token = str(os.environ.get("DISCORD_TOKEN"))
 discord_channel = int(os.environ.get("DISCORD_CHANNEL_ID"))
@@ -9,4 +13,21 @@ def main(request):
         send(request)
     
 def send(request):
-    pass
+    try:
+        headers = {
+            "Authorization": discord_token,
+            "Content-Type": "application/json"
+        }
+
+        stream_info = request.get_json()
+
+        content = {
+            "content": f"**{stream_info['user_name']}** is live on **{stream_info['game_name']}**! \nhttps://www.twitch.tv/{stream_info['user_name']}"
+        }
+
+        response = requests.post(f"https://discord.com/api/channels/{discord_channel}/messages", headers=headers, json=content)
+
+        return "Success"
+
+    except Exception as e:
+        print(e)
