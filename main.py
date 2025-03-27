@@ -2,9 +2,11 @@ import requests
 import os
 import functions_framework
 from flask import Response
+from crypto import verify_twitch_notification
 
 twitch_token = str(os.environ.get("TWITCH_TOKEN")) #app access tokenの方
 twitch_client_id = str(os.environ.get("TWITCH_CLIENT_ID"))
+webhook_secret = os.environ.get('TWITCH_WEBHOOK_SECRET')
 webhook_url = str(os.environ.get("WEBHOOK_URL"))
 
 @functions_framework.http
@@ -18,6 +20,12 @@ def main(request):
     
 def send(request):
     try:
+        # 署名を検証
+        verification = verify_twitch_notification(request, webhook_secret)
+        
+        if not verification['verified']:
+            return "署名が無効です", 403
+        
         headers = {
             "Content-Type": "application/json"
         }
