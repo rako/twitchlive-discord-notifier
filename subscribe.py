@@ -23,6 +23,7 @@ def subscribe(request):
         }
 
         webhook_url = os.environ.get("WEBHOOK_URL")
+        hmac_secret = os.environ.get("TWITCH_HMAC_SECRET")
 
         for streamer_info in json_data["data"]:
             broadcaster_id = streamer_info["broadcaster_id"]
@@ -43,7 +44,7 @@ def subscribe(request):
                 "transport": {
                     "method": "webhook",
                     "callback": f"{webhook_url}",
-                    "secret": f"{HMAC_SECRET}"
+                    "secret": f"{hmac_secret}"
                 }
             }
             
@@ -57,7 +58,7 @@ def subscribe(request):
                 "transport": {
                     "method": "webhook",
                     "callback": f"{webhook_url}",
-                    "secret": f"{HMAC_SECRET}"
+                    "secret": f"{hmac_secret}"
                 }
             }
             

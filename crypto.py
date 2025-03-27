@@ -1,5 +1,3 @@
-# functions_framework内で使用する例
-import functions_framework
 import hmac
 import hashlib
 import os
@@ -70,7 +68,7 @@ def verify_twitch_notification(request, secret):
         'type': message_type
     }
 
-@functions_framework.http
+
 def webhook_handler(request):
     webhook_secret = os.environ.get('TWITCH_WEBHOOK_SECRET')
     
