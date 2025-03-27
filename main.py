@@ -3,12 +3,9 @@ import os
 import functions_framework
 from flask import Response
 
-
-discord_token = str(os.environ.get("DISCORD_TOKEN"))
-discord_channel = int(os.environ.get("DISCORD_CHANNEL_ID"))
-
 twitch_token = str(os.environ.get("TWITCH_TOKEN")) #app access tokenの方
 twitch_client_id = str(os.environ.get("TWITCH_CLIENT_ID"))
+webhook_url = str(os.environ.get("WEBHOOK_URL"))
 
 @functions_framework.http
 def main(request):
@@ -22,7 +19,6 @@ def main(request):
 def send(request):
     try:
         headers = {
-            "Authorization": discord_token,
             "Content-Type": "application/json"
         }
 
@@ -32,7 +28,9 @@ def send(request):
             "content": f"**{stream_info['user_name']}** is live on **{stream_info['game_name']}**! \nhttps://www.twitch.tv/{stream_info['user_name']}"
         }
 
-        response = requests.post(f"https://discord.com/api/channels/{discord_channel}/messages", headers=headers, json=content)
+        webhookurl = os.environ.get("WEBHOOK_URL")
+        
+        response = requests.post(webhookurl, headers=headers, json=content)
 
         return "Success", 200 # 2XXを返さないと何回も送られてくるらしい
 
