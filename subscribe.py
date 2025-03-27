@@ -22,7 +22,7 @@ def subscribe(request):
             "Content-Type": "application/json"
         }
 
-        webhook_url = os.environ.get("WEBHOOK_URL")
+        callback_url = os.environ.get("CALLBACK_URL")
         hmac_secret = os.environ.get("TWITCH_HMAC_SECRET")
 
         for streamer_info in json_data["data"]:
@@ -43,11 +43,20 @@ def subscribe(request):
                 },
                 "transport": {
                     "method": "webhook",
-                    "callback": f"{webhook_url}",
+                    "callback": f"{callback_url}",
                     "secret": f"{hmac_secret}"
                 }
             }
             
+            response = requests.post(url, headers=headers, json=subscribe_json)
+            if response.status_code != 202:
+                print(response.text)
+                print(f"{streamer_info["broadcaster_name"]}の配信開始のサブスクリプション作成に失敗しました")
+                continue
+            else:
+                print(response.text)
+                print(f"{streamer_info["broadcaster_name"]}の配信開始のサブスクリプションを作成しました")
+                
             # subscribe to offline
             subscribe_json = {
                 "type": "stream.offline",
@@ -61,6 +70,15 @@ def subscribe(request):
                     "secret": f"{hmac_secret}"
                 }
             }
+
+            response = requests.post(url, headers=headers, json=subscribe_json)
+            if response.status_code != 202:
+                print(response.text)
+                print(f"{streamer_info["broadcaster_name"]}の配信開始のサブスクリプション作成に失敗しました")
+                continue
+            else:
+                print(response.text)
+                print(f"{streamer_info["broadcaster_name"]}の配信開始のサブスクリプションを作成しました")
             
 
     except Exception as e:
