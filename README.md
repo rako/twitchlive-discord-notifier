@@ -1,2 +1,12 @@
 # twitchlive-discord-notifier
 Twitchの配信開始通知をDiscordに送るためのBot
+
+# 情報の取得のための流れ
+1. HTMLファイル内で、Implicit grant flowでUser access tokenを取得する。ここは**User access token**取得できるならどの方法でもよい。scopeは`user:read:follows`にしてリクエストを送る。Authorization code grant flowは二段階認証をしているから、Implicit grant flowの方が良さそう。[Implicit grant flow](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#implicit-grant-flow)
+2. 1で帰って来た`Bearer token`と自分の`user_id`を用いて、followed channelsを取得する。ここは、followed streamsではないので注意する。[Get Followed Channels](https://dev.twitch.tv/docs/api/reference/#get-followed-channels), [Get Follwed Streams](https://dev.twitch.tv/docs/api/reference/#get-followed-streams)
+3. Client credentials grant flowで**App access token**を取得する。[Client credentials grant flow](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#client-credentials-grant-flow)
+4. 2でレスポンスに帰って来たJSONファイルの中の`id`ごとに、EventSubのリクエストを送る。Create EventSub SubscriptionのURLとヘッダーを使用して、Stream Subscriptionの例を元にJSONを送る。その際に、**callbackが必要なので先にインスタンスを立てておいてURLを手元に参照できるようにしておく**必要がある。さらに、secretの値が必要で、これはclient_secretでApp access tokenである必要がある。[Stream Subscriptions](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#stream-subscriptions), [Create EventSub Subscription](https://dev.twitch.tv/docs/api/reference/#create-eventsub-subscription)
+5. Webhookに来るようになっているかどうかの確認として、サブスクライブしているイベントのリストを取得する。ここでも、Bearer tokenはApp access tokenを使用する。[Getting the list of events you subscribe to](https://dev.twitch.tv/docs/eventsub/manage-subscriptions/#getting-the-list-of-events-you-subscribe-to)
+6. 最後に、通知が来たらそれを認証してDiscordに送る。通知のヘッダーに、`Twitch-Eventsub-Message-Id`と`Twitch-Eventsub-Message-Timestamp`と`Twitch-Eventsub-Message-Signature`がある。Message-IdとMessage-Timestampとrequest.bodyをこの順番で合わせて、client-secretと一緒にHMACを求める。そのHMACに`sha256=`を先頭に付けて、Message-Signatureと一緒かどうかを認証する。[Verifying the event message](https://dev.twitch.tv/docs/eventsub/handling-webhook-events/#verifying-the-event-message)
+
+- 削除したい場合は、App access tokenを用意して、5でイベントのリストの取得からイベントのIDをクエリパラメータとして送る[Delete EventSub Subscription](https://dev.twitch.tv/docs/api/reference/#delete-eventsub-subscription)を参照しながらリクエストを送る
