@@ -39,9 +39,15 @@ def send(request):
         stream_info = request.json["event"]
         print("stream_info:", stream_info)
 
-        content = {
-            "content": f"@everyone {stream_info['broadcaster_user_name']} is live now! \nhttps://www.twitch.tv/{stream_info['user_name']}"
-        }
+        # ここは、イベントのタイプによってオンラインとオフラインの言葉を変える。user_nameではなくbroadcaster_user_loginの文字列がユニークIDの方
+        if request.json["subscription"]["type"] == "stream.online":
+            content = {
+                "content": f"@everyone {stream_info['broadcaster_user_name']} is live now! \nhttps://www.twitch.tv/{stream_info['broadcaster_user_login']}"
+            }
+        elif request.json["subscription"]["type"] == "stream.offline":
+            content = {
+                "content": f"@everyone {stream_info['broadcaster_user_name']} is offline now! \nhttps://www.twitch.tv/{stream_info['broadcaster_user_login']}"
+            }
         
         response = requests.post(webhook_url, headers=headers, json=content)
         print(response)
