@@ -18,7 +18,7 @@ def subscribe():
         client_id = os.environ.get("clientId")
         client_secret = os.environ.get("clientSecret")
         bearertoken = os.environ.get("bearertoken")
-        webhook_url = os.environ.get("https://notifier-857867912527.asia-northeast2.run.app")
+        webhook_url = os.environ.get("webhook_url")
 
         for streamer_info in json_data["data"]:
             broadcaster_id = streamer_info["broadcaster_id"]
