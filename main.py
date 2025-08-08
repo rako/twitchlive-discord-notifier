@@ -2,7 +2,7 @@ import requests
 import os
 import functions_framework
 from flask import Response
-from crypto import verify_twitch_notification
+from crypto import verify_twitch_signature
 
 twitch_token = str(os.environ.get("TWITCH_TOKEN")) #app access tokenの方
 twitch_client_id = str(os.environ.get("TWITCH_CLIENT_ID"))
@@ -11,39 +11,53 @@ webhook_url = str(os.environ.get("WEBHOOK_URL"))
 
 @functions_framework.http
 def main(request):
-    if request.method != "POST":
-        return "無効です"
+    print("request json:", request.get_json())
 
-    # ここにシグネチャの確認をするかもしれない
+    # Message-Typeがwebhook_callback_verificationかnotificationで分けてChallengeと通知の関数を切り分けておく
+    message_type = request.headers.get("Twitch-Eventsub-Message-Type")
 
-    send(request)
+    if message_type == "webhook_callback_verification":
+        print("challenge認証が来ました")
+        return challenge(request)
+    if message_type == "notification":
+        print("配信の通知が来ました")
+        return send(request)
     
 def send(request):
     try:
         # 署名を検証
-        verification = verify_twitch_notification(request, webhook_secret)
+        verification = verify_twitch_signature(request, webhook_secret)
         
-        if not verification['verified']:
+        if not verification:
+            print("署名が無効です")
             return "署名が無効です", 403
         
         headers = {
             "Content-Type": "application/json"
         }
 
-        stream_info = request.get_json()
+        stream_info = request.json["event"]
+        print("stream_info:", stream_info)
 
         content = {
-            "content": f"**{stream_info['user_name']}** is live on **{stream_info['game_name']}**! \nhttps://www.twitch.tv/{stream_info['user_name']}"
+            "content": f"@everyone {stream_info['broadcaster_user_name']} is live now! \nhttps://www.twitch.tv/{stream_info['user_name']}"
         }
-
-        webhookurl = os.environ.get("WEBHOOK_URL")
         
-        response = requests.post(webhookurl, headers=headers, json=content)
+        response = requests.post(webhook_url, headers=headers, json=content)
+        print(response)
 
-        return "Success", 200 # 2XXを返さないと何回も送られてくるらしい
+        return Response(response="Success", status=200) # 2XXを返さないと何回も送られてくるらしい
 
     except Exception as e:
         print(e)
+        return Response(response="Failed because of server error", status=500)
+
+
+# イベントのサブスクライブ後に一番最初にChallengeが送られてくるのでそれの認証
+def challenge(request):
+    challenge_string = request.json["challenge"]
+    print("challenge_string:", challenge_string)
+    return Response(response=f'{challenge_string}', status=200, mimetype='text/plain')
 
 
 # 配信開始したらその情報を取得する。app access tokenでOK

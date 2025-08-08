@@ -1,37 +1,33 @@
-import functions_framework
 import requests
 import os
+import json
+from dotenv import load_dotenv
 
-@functions_framework.http
-def main(request):
-    if request.method != "POST":
-        return "無効です"
-    
-    subscribe(request)
+load_dotenv()
 
-def subscribe(request):
+def subscribe():
     try:
-        json_data = request.get_json()
+        with open("channels.json", "r", encoding="utf-8") as f:
+            json_data = json.load(f)
 
         if json_data is None:
             return "JSONデータがありません", 400
         
         print(f"受信したJSON: {json_data}") # デバッグ用
 
-        headers = {
-            "Content-Type": "application/json"
-        }
-
-        webhook_url = os.environ.get("WEBHOOK_URL")
-        hmac_secret = os.environ.get("TWITCH_HMAC_SECRET")
+        client_id = os.environ.get("clientId")
+        client_secret = os.environ.get("clientSecret")
+        bearertoken = os.environ.get("bearertoken")
+        webhook_url = os.environ.get("https://notifier-857867912527.asia-northeast2.run.app")
 
         for streamer_info in json_data["data"]:
             broadcaster_id = streamer_info["broadcaster_id"]
 
             url = f"https://api.twitch.tv/helix/eventsub/subscriptions"
             headers = {
-                "Client-ID": os.environ.get("TWITCH_CLIENT_ID"),
-                "Authorization": f"Bearer {os.environ.get('TWITCH_TOKEN')}"
+                "Client-ID": f"{client_id}",
+                "Authorization": f"Bearer {bearertoken}",
+                "Content-Type": "application/json"
             }
 
             # subscribe to online
@@ -44,18 +40,18 @@ def subscribe(request):
                 "transport": {
                     "method": "webhook",
                     "callback": f"{webhook_url}",
-                    "secret": f"{hmac_secret}"
+                    "secret": f"{client_secret}"
+
                 }
             }
             
             response = requests.post(url, headers=headers, json=subscribe_json)
-            if response.status_code != 202:
+            if not response.ok:
                 print(response.text)
-                print(f"{streamer_info["broadcaster_name"]}の配信開始のサブスクリプション作成に失敗しました")
-                continue
+                print(f"{streamer_info['broadcaster_name']}の配信開始のサブスクリプション作成に失敗しました")
             else:
                 print(response.text)
-                print(f"{streamer_info["broadcaster_name"]}の配信開始のサブスクリプションを作成しました")
+                print(f"{streamer_info['broadcaster_name']}の配信開始のサブスクリプションを作成しました")
                 
             # subscribe to offline
             subscribe_json = {
@@ -67,19 +63,26 @@ def subscribe(request):
                 "transport": {
                     "method": "webhook",
                     "callback": f"{webhook_url}",
-                    "secret": f"{hmac_secret}"
+                    "secret": f"{client_secret}"
                 }
             }
 
             response = requests.post(url, headers=headers, json=subscribe_json)
-            if response.status_code != 202:
+            if not response.ok:
                 print(response.text)
-                print(f"{streamer_info["broadcaster_name"]}の配信終了のサブスクリプション作成に失敗しました")
-                continue
+                print(response.status_code)
+                print(f"{streamer_info['broadcaster_name']}の配信終了のサブスクリプション作成に失敗しました")
             else:
                 print(response.text)
-                print(f"{streamer_info["broadcaster_name"]}の配信終了のサブスクリプションを作成しました")
-            
+                print(f"{streamer_info['broadcaster_name']}の配信終了のサブスクリプションを作成しました")
+
+        # 成功した結果を返す
+        return {
+            "message": "サブスクリプション処理完了",
+        }, 200
 
     except Exception as e:
-        print(e)
+        print(f"エラー発生: {e}")
+        return f"内部エラー: {str(e)}", 500
+
+subscribe()
